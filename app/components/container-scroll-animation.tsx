@@ -29,22 +29,22 @@ export const ContainerScroll = ({
   }, []);
 
   const scaleDimensions = () => {
-    return isMobile ? [0.75, 0.95] : [1.05, 1];
+    return isMobile ? [1, 1] : [1.05, 1];
   };
 
-  const rotate = useTransform(scrollYProgress, [0, 1], [20, 0]);
+  const rotate = useTransform(scrollYProgress, [0, 1], isMobile ? [0, 0] : [20, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
-  const translate = useTransform(scrollYProgress, [0, 1], [0, -60]);
+  const translate = useTransform(scrollYProgress, [0, 1], isMobile ? [0, 0] : [0, -60]);
 
   return (
     <div
-      className="relative flex items-center justify-center p-2 sm:p-6 md:p-14"
+      className="relative flex items-center justify-center p-1 sm:p-6 md:p-14"
       ref={containerRef}
     >
       <div
-        className="w-full relative py-8 sm:py-16 md:py-24"
+        className="w-full relative py-4 sm:py-16 md:py-24"
         style={{
-          perspective: "1200px",
+          perspective: isMobile ? "none" : "1200px",
         }}
       >
         <Header translate={translate} titleComponent={titleComponent} />
@@ -98,9 +98,9 @@ export const Card = ({
         boxShadow:
           "0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 50px rgba(0, 0, 0, 0.8), 0 40px 80px -20px rgba(245, 158, 11, 0.12)",
       }}
-      className="max-w-7xl mx-auto w-full border border-stone-700/80 p-2.5 sm:p-4 md:p-6 bg-[#181614] rounded-[28px] sm:rounded-[36px]"
+      className="max-w-7xl mx-auto w-full border border-stone-700/80 p-1.5 sm:p-4 md:p-6 bg-[#181614] rounded-[22px] sm:rounded-[36px]"
     >
-      <div className="w-full overflow-hidden rounded-[20px] sm:rounded-[26px] bg-[#121110] border border-stone-800/80">
+      <div className="w-full overflow-hidden rounded-[16px] sm:rounded-[26px] bg-[#121110] border border-stone-800/80">
         {children}
       </div>
     </motion.div>

@@ -109,7 +109,7 @@ const StageCardWithCanvasReveal = ({
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`group/canvas-card relative rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer min-h-[420px] ${
+      className={`group/canvas-card relative rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer min-h-[360px] sm:min-h-[420px] ${
         isSelected
           ? "border-amber-500/70 bg-[#161412] shadow-xl shadow-amber-500/15 ring-1 ring-amber-500/40 -translate-y-1"
           : "border-stone-800/90 bg-[#121110]/95 hover:border-stone-600 hover:shadow-2xl hover:shadow-black/70 hover:-translate-y-1"
@@ -196,24 +196,24 @@ export default function PipelineStages() {
   return (
     <section
       id="pipeline-stages"
-      className="relative z-10 py-20 px-6 sm:px-10 max-w-7xl mx-auto scroll-mt-20 select-none"
+      className="relative z-10 py-12 sm:py-20 px-4 sm:px-10 max-w-7xl mx-auto scroll-mt-20 select-none"
     >
       {/* Section Header */}
-      <div className="flex flex-col items-center text-center mb-14">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-mono font-bold tracking-widest text-amber-400 uppercase mb-3 shadow-xs">
+      <div className="flex flex-col items-center text-center mb-10 sm:mb-14">
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] sm:text-xs font-mono font-bold tracking-widest text-amber-400 uppercase mb-3 shadow-xs">
           <ShieldCheck className="h-3.5 w-3.5" />
           4-Stage Autonomous Defense Architecture
         </div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-stone-100">
+        <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-stone-100">
           How VaniRakshak Protects Voice Streams
         </h2>
-        <p className="mt-3 max-w-2xl text-xs sm:text-sm md:text-base text-stone-400 font-sans">
+        <p className="mt-2.5 max-w-2xl text-xs sm:text-sm md:text-base text-stone-400 font-sans px-2">
           From microsecond raw acoustic ingestion to sub-45ms transaction interlock quarantine, our multi-tiered verification pipeline operates seamlessly at the edge. Hover over any stage card to reveal the active neural dot matrix.
         </p>
       </div>
 
       {/* 4-Stage Progressive Pipeline Cards with Aceternity Canvas Reveal Effect */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {STAGES.map((stage, idx) => (
           <StageCardWithCanvasReveal
             key={stage.id}

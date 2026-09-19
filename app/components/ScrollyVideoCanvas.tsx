@@ -401,9 +401,9 @@ export default function ScrollyVideoCanvas() {
             })}
           </div>
 
-          {/* Active Stage Card (Exact Match to User's Pic 2 - Shown ONLY when a button is clicked, dismisses on click outside) */}
+          {/* Active Stage Card (Shown ONLY when a button is clicked, dismisses on click outside) */}
           {activeStage !== null && (
-            <div className="w-[280px] sm:w-[320px] md:w-[355px] max-w-[calc(100vw-6rem)] transition-all duration-300 animate-in fade-in slide-in-from-right-3 zoom-in-95">
+            <div className="max-sm:fixed max-sm:bottom-24 max-sm:inset-x-3 max-sm:w-auto sm:relative sm:w-[320px] md:w-[355px] max-w-[calc(100vw-1.5rem)] sm:max-w-[calc(100vw-6rem)] z-50 transition-all duration-300 animate-in fade-in slide-in-from-bottom-3 sm:slide-in-from-right-3 zoom-in-95">
               <div className="relative rounded-2xl border border-amber-500/35 bg-[#141210]/95 p-4 sm:p-5 backdrop-blur-2xl shadow-2xl shadow-black/85 text-stone-100 ring-1 ring-amber-500/20">
                 {/* Header: [ • 01 ] Pill Badge, Phase X/4, and Close Button */}
                 <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -432,13 +432,13 @@ export default function ScrollyVideoCanvas() {
                 </div>
 
                 {/* Title & Subtitle */}
-                <h3 className="text-lg sm:text-xl font-black tracking-tight text-amber-100 mb-1 leading-snug">
+                <h3 className="text-base sm:text-lg md:text-xl font-black tracking-tight text-amber-100 mb-1 leading-snug">
                   {STAGES[activeStage].title}
                 </h3>
                 <p className="text-xs font-semibold text-amber-400 mb-2 leading-tight">
                   {STAGES[activeStage].subtitle}
                 </p>
-                <p className="text-xs text-stone-300 leading-relaxed mb-4">
+                <p className="text-xs text-stone-300 leading-relaxed mb-3 sm:mb-4">
                   {STAGES[activeStage].description}
                 </p>
 
@@ -449,7 +449,7 @@ export default function ScrollyVideoCanvas() {
                       <div className="text-[8px] uppercase font-mono tracking-wider text-stone-400 mb-0.5 truncate">
                         {st.label}
                       </div>
-                      <div className="text-[11px] font-bold text-white truncate">
+                      <div className="text-[10px] sm:text-[11px] font-bold text-white truncate">
                         {st.value}
                       </div>
                     </div>
@@ -472,23 +472,23 @@ export default function ScrollyVideoCanvas() {
 
         {/* Bottom Control Bar with Frame counter & Scrub percent */}
         <div
-          className="absolute bottom-6 inset-x-0 z-30 flex items-center justify-between px-6 sm:px-10 text-xs font-mono pointer-events-none transition-opacity duration-300"
+          className="absolute bottom-4 sm:bottom-6 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-10 text-xs font-mono pointer-events-none transition-opacity duration-300"
           style={{
             opacity: scrollProgress > 0.95 ? 0 : 1,
           }}
         >
-          <div className="ml-4 sm:ml-12 rounded-full border border-stone-400/30 bg-[#F6F5F2]/90 px-3 py-1 text-stone-800 backdrop-blur-md font-semibold shadow-sm">
+          <div className="hidden sm:block ml-4 sm:ml-12 rounded-full border border-stone-400/30 bg-[#F6F5F2]/90 px-3 py-1 text-stone-800 backdrop-blur-md font-semibold shadow-sm">
             FRAME {String(displayedFrame + 1).padStart(3, "0")} / {TOTAL_FRAMES}
           </div>
 
           <button
             onClick={scrollToConsole}
-            className="pointer-events-auto rounded-full bg-stone-900/90 hover:bg-stone-950 text-stone-100 px-4 py-2 font-sans font-semibold text-xs border border-stone-700/60 backdrop-blur-md shadow-lg transition-all hover:scale-105 cursor-pointer"
+            className="pointer-events-auto rounded-full bg-stone-900/90 hover:bg-stone-950 text-stone-100 px-3.5 py-1.5 sm:px-4 sm:py-2 font-sans font-semibold text-[11px] sm:text-xs border border-stone-700/60 backdrop-blur-md shadow-lg transition-all hover:scale-105 cursor-pointer"
           >
             Launch Live Mic Console ↓
           </button>
 
-          <div className="rounded-full border border-stone-400/30 bg-[#F6F5F2]/90 px-3 py-1 text-stone-800 backdrop-blur-md font-semibold shadow-sm">
+          <div className="rounded-full border border-stone-400/30 bg-[#F6F5F2]/90 px-2.5 py-1 sm:px-3 text-[10px] sm:text-xs text-stone-800 backdrop-blur-md font-semibold shadow-sm">
             {Math.round(scrollProgress * 100)}% EXPLORED
           </div>
         </div>
