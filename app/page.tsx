@@ -15,6 +15,8 @@ import {
   Lock,
   Sparkles,
   AlertOctagon,
+  Download,
+  Smartphone,
 } from "lucide-react";
 import ScrollyVideoCanvas from "./components/ScrollyVideoCanvas";
 import { ContainerScroll } from "./components/container-scroll-animation";
@@ -385,34 +387,40 @@ export default function Home() {
               IMPACT
             </button>
 
-            <button
-              onClick={() => {
-                // Download telemetry audit report
-                const report = {
-                  project: "VaniRakshak",
-                  timestamp: new Date().toISOString(),
-                  systemState: connected ? "CONNECTED" : demoMode ? "DEMO_ACTIVE" : "STANDBY",
-                  threatScore: risk,
-                  decision: action,
-                  spoofConfidence: spoofScore,
-                  speakerSimilarity,
-                  channelSNR: snr,
-                  logEntries: events,
-                };
-                const blob = new Blob([JSON.stringify(report, null, 2)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `vanirakshak-telemetry-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="text-xs sm:text-[13px] font-semibold tracking-[0.16em] uppercase text-[#4A433B] hover:text-[#1E1A17] transition-colors cursor-pointer"
+            {/* VaniRakshak Working Mobile App Icon & Download Action */}
+            <a
+              href="https://drive.google.com/file/d/1HLIVbGuyS5sdVHKHcEn0hdfYruQy3nWQ/view?usp=drivesdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-stone-900 to-[#1c1a17] text-white border border-stone-700/80 shadow-md hover:shadow-lg hover:border-amber-500/80 hover:from-black hover:to-stone-900 transition-all duration-200 group cursor-pointer hover:scale-[1.03] active:scale-95"
+              title="Download VaniRakshak Working Mobile App"
             >
-              DOWNLOAD
-            </button>
+              {/* VaniRakshak App Icon */}
+              <div className="h-7 w-7 rounded-lg overflow-hidden bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 group-hover:border-amber-400 shadow-xs">
+                <Image
+                  src="/vanirakshak-logo.jpg"
+                  alt="App Icon"
+                  width={28}
+                  height={28}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold tracking-wider uppercase text-amber-300 font-sans leading-none">
+                    Working App
+                  </span>
+                  <span className="flex h-1.5 w-1.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-stone-300 group-hover:text-amber-400 transition-colors mt-0.5 leading-none flex items-center gap-1">
+                  <span>click to download</span>
+                  <Download className="h-2.5 w-2.5 text-amber-400 animate-bounce shrink-0" />
+                </span>
+              </div>
+            </a>
 
             {/* Subtle Live Telemetry Badge & Quick Controller */}
             <div className="hidden md:flex items-center gap-2 pl-2 border-l border-[#D9D3C8]">
