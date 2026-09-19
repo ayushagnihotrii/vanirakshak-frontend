@@ -120,14 +120,31 @@ export default function ScrollyVideoCanvas() {
     let offsetX = 0;
     let offsetY = 0;
 
-    if (canvasRatio > imgRatio) {
-      drawWidth = canvasWidth;
-      drawHeight = canvasWidth / imgRatio;
-      offsetY = (canvasHeight - drawHeight) / 2;
+    const isPortrait = canvasWidth < canvasHeight;
+
+    if (!isPortrait) {
+      // Desktop / Landscape: 100% original wide studio presentation
+      if (canvasRatio > imgRatio) {
+        drawWidth = canvasWidth;
+        drawHeight = canvasWidth / imgRatio;
+        offsetY = (canvasHeight - drawHeight) / 2;
+      } else {
+        drawHeight = canvasHeight;
+        drawWidth = canvasHeight * imgRatio;
+        offsetX = (canvasWidth - drawWidth) / 2;
+      }
     } else {
-      drawHeight = canvasHeight;
-      drawWidth = canvasHeight * imgRatio;
-      offsetX = (canvasWidth - drawWidth) / 2;
+      // Mobile / Portrait: Focus & dead-center directly on the 3D microphone!
+      // In the 1920x1080 source frames, the 3D mic's focal center is at ~59% horizontal width (X = 1135px).
+      // Scale to fit the microphone with generous clarity and zero side-clipping:
+      const mobileScale = Math.min(1.02, Math.max(0.78, (canvasHeight / 820) * 0.88));
+      drawHeight = canvasHeight * mobileScale;
+      drawWidth = drawHeight * imgRatio;
+
+      // Horizontally center the 3D microphone directly in the middle of the phone screen
+      const micFocalX = 0.585;
+      offsetX = (canvasWidth / 2) - (drawWidth * micFocalX);
+      offsetY = (canvasHeight - drawHeight) / 2;
     }
 
     const snappedDrawWidth = Math.round(drawWidth);
@@ -138,6 +155,10 @@ export default function ScrollyVideoCanvas() {
     // High quality image smoothing
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
+
+    // Clean background fill matching official #F0EDE2 studio color
+    ctx.fillStyle = "#F0EDE2";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     ctx.drawImage(img, snappedOffsetX, snappedOffsetY, snappedDrawWidth, snappedDrawHeight);
 
@@ -158,8 +179,10 @@ export default function ScrollyVideoCanvas() {
 
     // Fully cover the background video's baked-in taskbar with seamless original background color
     const bakedNavHeight = Math.round(Math.max(0, snappedOffsetY) + 154 * scaleY);
-    ctx.fillStyle = "#F0EDE2";
-    ctx.fillRect(0, 0, canvasWidth, bakedNavHeight);
+    if (bakedNavHeight > 0) {
+      ctx.fillStyle = "#F0EDE2";
+      ctx.fillRect(0, 0, canvasWidth, bakedNavHeight);
+    }
 
     ctx.restore();
   }, [syncCanvasDimensions]);
@@ -193,21 +216,42 @@ export default function ScrollyVideoCanvas() {
     };
   }, [getFrameUrl, drawFrame]);
 
-  // Robust Concurrent Preloader: Immediate Frame 0 + High-Speed Background Stream
+  // Robust Two-Tier Preloader: Instant Frame 0 + 360-degree Keyframe Skeleton + Full Background Stream
   useEffect(() => {
     let isCancelled = false;
 
-    // Load Frame 0 right away so the user never sees a blank screen
+    // 1. Immediately request Frame 0 for zero-delay presentation
     requestFrameLoad(0);
 
-    // Preload all 220 frames using a high-concurrency pool of 12 workers
-    let loadedCount = 0;
+    // 2. Load evenly-spaced keyframe skeleton (every 8 frames) so scrolling anywhere on phone is immediately sharp
+    const skeletonIndices: number[] = [];
+    for (let i = 0; i < TOTAL_FRAMES; i += 8) {
+      skeletonIndices.push(i);
+    }
+    if (!skeletonIndices.includes(TOTAL_FRAMES - 1)) {
+      skeletonIndices.push(TOTAL_FRAMES - 1);
+    }
+
+    // Load keyframes first with top priority
+    skeletonIndices.forEach((idx) => {
+      requestFrameLoad(idx);
+    });
+
+    // 3. Background stream for remaining frames with concurrency of 8
+    const remainingIndices: number[] = [];
+    for (let i = 0; i < TOTAL_FRAMES; i++) {
+      if (!skeletonIndices.includes(i)) {
+        remainingIndices.push(i);
+      }
+    }
+
     let nextQueueIdx = 0;
-    const CONCURRENCY = 12;
+    let loadedCount = skeletonIndices.length;
+    const CONCURRENCY = 8;
 
     const spawnWorker = () => {
-      if (isCancelled || nextQueueIdx >= TOTAL_FRAMES) return;
-      const idx = nextQueueIdx++;
+      if (isCancelled || nextQueueIdx >= remainingIndices.length) return;
+      const idx = remainingIndices[nextQueueIdx++];
 
       if (imagesRef.current[idx]) {
         loadedCount++;
@@ -226,10 +270,6 @@ export default function ScrollyVideoCanvas() {
         loadedCount++;
         setLoadingProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
 
-        if (idx === 0 || loadedCount >= 4) {
-          setIsReady(true);
-        }
-
         // Check if currently active frame needs redraw
         const activeTarget = Math.round(currentFrameRef.current);
         if (activeTarget === idx && drawnActualIndexRef.current !== idx) {
@@ -246,13 +286,17 @@ export default function ScrollyVideoCanvas() {
       };
     };
 
-    // Launch worker pool
-    for (let w = 0; w < CONCURRENCY; w++) {
-      spawnWorker();
-    }
+    // Stagger worker pool slightly to give initial keyframes high network bandwidth
+    const timer = setTimeout(() => {
+      if (isCancelled) return;
+      for (let w = 0; w < CONCURRENCY; w++) {
+        spawnWorker();
+      }
+    }, 150);
 
     return () => {
       isCancelled = true;
+      clearTimeout(timer);
     };
   }, [getFrameUrl, requestFrameLoad, drawFrame]);
 
@@ -264,7 +308,8 @@ export default function ScrollyVideoCanvas() {
     const handleScroll = () => {
       if (!containerRef.current || isDraggingRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const maxScroll = rect.height - window.innerHeight;
+      const viewportH = window.visualViewport?.height || window.innerHeight;
+      const maxScroll = rect.height - viewportH;
 
       if (maxScroll <= 0) return;
 
@@ -296,8 +341,12 @@ export default function ScrollyVideoCanvas() {
     // Animation render loop
     const renderLoop = () => {
       const delta = targetFrameRef.current - currentFrameRef.current;
+      const isMobile = window.innerWidth < 768;
+      // Faster, snappier lerp on mobile phones for instant thumb-scroll reaction
+      const lerpSpeed = isMobile ? 0.35 : 0.22;
+
       if (Math.abs(delta) > 0.005) {
-        currentFrameRef.current += delta * 0.22;
+        currentFrameRef.current += delta * lerpSpeed;
       } else {
         currentFrameRef.current = targetFrameRef.current;
       }
@@ -343,8 +392,9 @@ export default function ScrollyVideoCanvas() {
     };
   }, [drawFrame, syncCanvasDimensions, requestFrameLoad]);
 
-  // Pointer Drag-to-Roll Handlers (Allows directly dragging the microphone horizontally to spin it)
+  // Pointer Drag-to-Roll Handlers (Enabled for mouse on computer, native touch scroll left undisturbed on phone)
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") return;
     isDraggingRef.current = true;
     dragStartXRef.current = e.clientX;
     dragStartFrameRef.current = targetFrameRef.current;
@@ -354,7 +404,7 @@ export default function ScrollyVideoCanvas() {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDraggingRef.current || !containerRef.current) return;
+    if (!isDraggingRef.current || !containerRef.current || e.pointerType !== "mouse") return;
     const deltaX = e.clientX - dragStartXRef.current;
 
     // Moving left/right scrubs through frames smoothly
@@ -379,6 +429,7 @@ export default function ScrollyVideoCanvas() {
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") return;
     isDraggingRef.current = false;
     try {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
@@ -415,18 +466,18 @@ export default function ScrollyVideoCanvas() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[460vh] bg-slate-950 select-none"
+      className="relative w-full h-[320vh] sm:h-[460vh] bg-slate-950 select-none"
     >
       {/* Sticky Fullscreen Stage with Original #F0EDE2 Background */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center bg-[#F0EDE2]">
-        {/* Canvas Visualizer (100% unobstructed on the right/center) */}
+      <div className="sticky top-0 h-[100dvh] sm:h-screen w-full overflow-hidden flex items-center justify-center bg-[#F0EDE2]">
+        {/* Canvas Visualizer (100% unobstructed on the right/center, centered on mobile) */}
         <canvas
           ref={canvasRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 cursor-grab active:cursor-grabbing"
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 cursor-grab active:cursor-grabbing touch-pan-y"
           style={{ opacity: isReady ? 1 : 0 }}
         />
 
