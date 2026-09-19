@@ -9,8 +9,10 @@ export default function ScrollyVideoCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Array of loaded images
+  // Array of loaded images & load tracking
   const imagesRef = useRef<(HTMLImageElement | null)[]>([]);
+  const inFlightRef = useRef<Set<number>>(new Set());
+  const drawnActualIndexRef = useRef<number>(-1);
   const targetFrameRef = useRef<number>(0);
   const currentFrameRef = useRef<number>(0);
   const animFrameIdRef = useRef<number | null>(null);
@@ -20,6 +22,11 @@ export default function ScrollyVideoCanvas() {
     dpr: 1,
   });
   const lastDrawnImgRef = useRef<HTMLImageElement | null>(null);
+
+  // Drag-to-roll state
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartFrameRef = useRef(0);
 
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
@@ -68,11 +75,11 @@ export default function ScrollyVideoCanvas() {
   }, []);
 
   // Helper to get formatted frame path (with cache-buster to ensure clean frames load)
-  const getFrameUrl = (frameIndex: number) => {
+  const getFrameUrl = useCallback((frameIndex: number) => {
     const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, frameIndex + 1));
     const padNum = String(frameNum).padStart(4, "0");
     return `/frames/frame_${padNum}.webp?v=2`;
-  };
+  }, []);
 
   // Draw a specific frame onto the canvas using cached dimensions & integer pixel coordinates
   const drawFrame = useCallback((frameIndex: number) => {
@@ -91,12 +98,15 @@ export default function ScrollyVideoCanvas() {
 
     // Find requested frame or fallback to last successfully drawn frame (prevents flicker/jump)
     let img: HTMLImageElement | null = imagesRef.current[frameIndex] || null;
+    let actualIndex = frameIndex;
     if (!img || !img.complete || img.naturalWidth === 0) {
       img = lastDrawnImgRef.current;
+      actualIndex = drawnActualIndexRef.current;
     }
 
     if (!img || !img.complete || img.naturalWidth === 0) return;
     lastDrawnImgRef.current = img;
+    drawnActualIndexRef.current = actualIndex;
 
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -154,86 +164,97 @@ export default function ScrollyVideoCanvas() {
     ctx.restore();
   }, [syncCanvasDimensions]);
 
-  // Load priority batch then stream remaining frames
+  // Request a single frame to be loaded on-demand
+  const requestFrameLoad = useCallback((frameIdx: number) => {
+    if (frameIdx < 0 || frameIdx >= TOTAL_FRAMES) return;
+    if (imagesRef.current[frameIdx] || inFlightRef.current.has(frameIdx)) return;
+
+    inFlightRef.current.add(frameIdx);
+    const img = new Image();
+    img.src = getFrameUrl(frameIdx);
+    img.onload = () => {
+      imagesRef.current[frameIdx] = img;
+      inFlightRef.current.delete(frameIdx);
+
+      // If this was the initial frame, display immediately
+      if (frameIdx === 0 && !lastDrawnImgRef.current) {
+        drawFrame(0);
+        setIsReady(true);
+      }
+
+      // If the currently desired frame just loaded, trigger redraw immediately
+      const desired = Math.round(currentFrameRef.current);
+      if (desired === frameIdx || (Math.abs(desired - frameIdx) <= 1 && drawnActualIndexRef.current !== desired)) {
+        drawFrame(desired);
+      }
+    };
+    img.onerror = () => {
+      inFlightRef.current.delete(frameIdx);
+    };
+  }, [getFrameUrl, drawFrame]);
+
+  // Robust Concurrent Preloader: Immediate Frame 0 + High-Speed Background Stream
   useEffect(() => {
     let isCancelled = false;
-    const priorityIndices = [0, 20, 50, 80, 110, 140, 170, 200, 219];
-    let loadedPriority = 0;
 
-    priorityIndices.forEach((idx) => {
+    // Load Frame 0 right away so the user never sees a blank screen
+    requestFrameLoad(0);
+
+    // Preload all 220 frames using a high-concurrency pool of 12 workers
+    let loadedCount = 0;
+    let nextQueueIdx = 0;
+    const CONCURRENCY = 12;
+
+    const spawnWorker = () => {
+      if (isCancelled || nextQueueIdx >= TOTAL_FRAMES) return;
+      const idx = nextQueueIdx++;
+
+      if (imagesRef.current[idx]) {
+        loadedCount++;
+        setLoadingProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
+        spawnWorker();
+        return;
+      }
+
+      inFlightRef.current.add(idx);
       const img = new Image();
       img.src = getFrameUrl(idx);
       img.onload = () => {
         if (isCancelled) return;
         imagesRef.current[idx] = img;
-        loadedPriority++;
-        if (loadedPriority === 1) {
-          drawFrame(idx);
-        }
-        if (loadedPriority >= Math.min(4, priorityIndices.length)) {
+        inFlightRef.current.delete(idx);
+        loadedCount++;
+        setLoadingProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
+
+        if (idx === 0 || loadedCount >= 4) {
           setIsReady(true);
         }
+
+        // Check if currently active frame needs redraw
+        const activeTarget = Math.round(currentFrameRef.current);
+        if (activeTarget === idx && drawnActualIndexRef.current !== idx) {
+          drawFrame(idx);
+        }
+
+        spawnWorker();
       };
-    });
-
-    const remainingIndices: number[] = [];
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
-      if (!priorityIndices.includes(i)) {
-        remainingIndices.push(i);
-      }
-    }
-
-    let loadedRemaining = 0;
-    const batchSize = 6;
-    let curBatch = 0;
-
-    const loadNextBatch = () => {
-      if (isCancelled) return;
-      const start = curBatch * batchSize;
-      const end = Math.min(start + batchSize, remainingIndices.length);
-      if (start >= remainingIndices.length) {
-        setIsReady(true);
-        return;
-      }
-
-      const nextIndices = remainingIndices.slice(start, end);
-      let batchLoaded = 0;
-
-      nextIndices.forEach((idx) => {
-        const img = new Image();
-        img.src = getFrameUrl(idx);
-        img.onload = () => {
-          if (isCancelled) return;
-          imagesRef.current[idx] = img;
-          loadedRemaining++;
-          setLoadingProgress(
-            Math.round(
-              ((loadedPriority + loadedRemaining) / TOTAL_FRAMES) * 100
-            )
-          );
-          batchLoaded++;
-          if (batchLoaded === nextIndices.length) {
-            curBatch++;
-            setTimeout(loadNextBatch, 16);
-          }
-        };
-        img.onerror = () => {
-          batchLoaded++;
-          if (batchLoaded === nextIndices.length) {
-            curBatch++;
-            setTimeout(loadNextBatch, 16);
-          }
-        };
-      });
+      img.onerror = () => {
+        if (isCancelled) return;
+        inFlightRef.current.delete(idx);
+        loadedCount++;
+        spawnWorker();
+      };
     };
 
-    const timer = setTimeout(loadNextBatch, 200);
+    // Launch worker pool
+    for (let w = 0; w < CONCURRENCY; w++) {
+      spawnWorker();
+    }
 
     return () => {
       isCancelled = true;
-      clearTimeout(timer);
     };
-  }, [drawFrame]);
+  }, [getFrameUrl, requestFrameLoad, drawFrame]);
 
   // Handle Smooth Scroll & Frame Interpolation (Lerping)
   useEffect(() => {
@@ -241,7 +262,7 @@ export default function ScrollyVideoCanvas() {
     let lastReportedPct = -1;
 
     const handleScroll = () => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || isDraggingRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const maxScroll = rect.height - window.innerHeight;
 
@@ -251,7 +272,6 @@ export default function ScrollyVideoCanvas() {
       const rawProgress = Math.max(0, Math.min(1, currentScroll / maxScroll));
 
       // Throttle React state update to only when rounded integer percentage changes
-      // (prevents 60-120 re-renders/sec, eliminating the 1ms main-thread jitter)
       const pct = Math.round(rawProgress * 100);
       if (pct !== lastReportedPct) {
         lastReportedPct = pct;
@@ -277,7 +297,7 @@ export default function ScrollyVideoCanvas() {
     const renderLoop = () => {
       const delta = targetFrameRef.current - currentFrameRef.current;
       if (Math.abs(delta) > 0.005) {
-        currentFrameRef.current += delta * 0.18;
+        currentFrameRef.current += delta * 0.22;
       } else {
         currentFrameRef.current = targetFrameRef.current;
       }
@@ -287,7 +307,19 @@ export default function ScrollyVideoCanvas() {
         Math.max(0, Math.round(currentFrameRef.current))
       );
 
-      if (frameToDraw !== lastRenderedFrame) {
+      // On-demand lookahead: actively prefetch surrounding frames around current position
+      for (let offset = -4; offset <= 4; offset++) {
+        requestFrameLoad(frameToDraw + offset);
+      }
+
+      const targetImg = imagesRef.current[frameToDraw];
+      const isTargetReady = targetImg && targetImg.complete && targetImg.naturalWidth > 0;
+
+      // Draw if target frame changed, OR if target frame has just loaded replacing a fallback
+      if (
+        frameToDraw !== lastRenderedFrame ||
+        (isTargetReady && drawnActualIndexRef.current !== frameToDraw)
+      ) {
         drawFrame(frameToDraw);
         lastRenderedFrame = frameToDraw;
         setDisplayedFrame(frameToDraw);
@@ -309,7 +341,49 @@ export default function ScrollyVideoCanvas() {
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [drawFrame, syncCanvasDimensions]);
+  }, [drawFrame, syncCanvasDimensions, requestFrameLoad]);
+
+  // Pointer Drag-to-Roll Handlers (Allows directly dragging the microphone horizontally to spin it)
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    isDraggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    dragStartFrameRef.current = targetFrameRef.current;
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDraggingRef.current || !containerRef.current) return;
+    const deltaX = e.clientX - dragStartXRef.current;
+
+    // Moving left/right scrubs through frames smoothly
+    const frameShift = Math.round(deltaX / 3.5);
+    const newTarget = Math.max(
+      0,
+      Math.min(TOTAL_FRAMES - 1, dragStartFrameRef.current + frameShift)
+    );
+    targetFrameRef.current = newTarget;
+
+    // Smoothly synchronize the page scroll position with the current rotation
+    const containerTop =
+      containerRef.current.getBoundingClientRect().top + window.scrollY;
+    const maxScroll = containerRef.current.scrollHeight - window.innerHeight;
+    const targetScrollY =
+      containerTop + (newTarget / (TOTAL_FRAMES - 1)) * maxScroll;
+
+    window.scrollTo({
+      top: targetScrollY,
+      behavior: "instant" as ScrollBehavior,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    isDraggingRef.current = false;
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+  };
 
   // Jump to specific stage - opens stage card or toggles if clicked again
   const handleStageClick = (idx: number) => {
@@ -348,7 +422,11 @@ export default function ScrollyVideoCanvas() {
         {/* Canvas Visualizer (100% unobstructed on the right/center) */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 cursor-grab active:cursor-grabbing"
           style={{ opacity: isReady ? 1 : 0 }}
         />
 
