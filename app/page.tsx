@@ -21,6 +21,7 @@ import {
 import ScrollyVideoCanvas from "./components/ScrollyVideoCanvas";
 import { ContainerScroll } from "./components/container-scroll-animation";
 import PipelineStages from "./components/PipelineStages";
+import RotateOrientationOverlay from "./components/RotateOrientationOverlay";
 
 type RiskAction = "ALLOW" | "CHALLENGE" | "BLOCK";
 
@@ -318,6 +319,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#121110] text-stone-100 selection:bg-amber-500/30 selection:text-white">
+      {/* Mobile Horizontal Orientation Prompt (Auto-Dismisses When Turned Landscape) */}
+      <RotateOrientationOverlay />
+
       {/* Replicated VaniRakshak Studio Taskbar (Matching User Design) */}
       {/* Replicated VaniRakshak Studio Taskbar (Matching User Design) */}
       <header className="fixed top-0 inset-x-0 z-50 border-b border-[#D8D2C6] bg-[#F0EDE2] shadow-xs">
