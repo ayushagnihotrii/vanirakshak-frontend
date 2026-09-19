@@ -392,32 +392,37 @@ export default function Home() {
               href="https://drive.google.com/file/d/1HLIVbGuyS5sdVHKHcEn0hdfYruQy3nWQ/view?usp=drivesdk"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-stone-900 to-[#1c1a17] text-white border border-stone-700/80 shadow-md hover:shadow-lg hover:border-amber-500/80 hover:from-black hover:to-stone-900 transition-all duration-200 group cursor-pointer hover:scale-[1.03] active:scale-95"
-              title="Download VaniRakshak Working Mobile App"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-stone-900 to-[#181614] text-white border border-stone-700/80 shadow-md hover:shadow-lg hover:border-[#3DDC84]/70 hover:from-black hover:to-stone-900 transition-all duration-200 group cursor-pointer hover:scale-[1.03] active:scale-95"
+              title="Download VaniRakshak Working Android App (APK)"
             >
-              {/* VaniRakshak App Icon */}
-              <div className="h-7 w-7 rounded-lg overflow-hidden bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 group-hover:border-amber-400 shadow-xs">
-                <Image
-                  src="/vanirakshak-logo.jpg"
-                  alt="App Icon"
-                  width={28}
-                  height={28}
-                  className="w-full h-full object-cover"
-                />
+              {/* Minimalist Highlighted Android Application Icon */}
+              <div className="h-7.5 w-7.5 rounded-lg bg-gradient-to-br from-[#3DDC84]/25 via-[#10b981]/15 to-[#0b1f14] border border-[#3DDC84]/70 ring-1 ring-[#3DDC84]/30 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(61,220,132,0.35)] group-hover:shadow-[0_0_16px_rgba(61,220,132,0.6)] group-hover:border-[#3DDC84] transition-all duration-200">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-4.5 h-4.5 text-[#3DDC84] transition-transform duration-200 group-hover:scale-110 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.996-3.4572c.1556-.2696.0631-.6138-.2064-.7694-.2691-.1556-.6133-.0631-.7689.2065l-2.0296 3.5152C15.228 8.1633 13.6547 7.79 12 7.79c-1.6547 0-3.228.3733-4.8725 1.0265L5.0979 5.3013c-.1556-.2696-.4998-.3621-.7689-.2065-.2695.1556-.362.4998-.2064.7694l1.996 3.4572C2.6845 11.2335.3432 15.0397 0 19.5h24c-.3432-4.4603-2.6845-8.2665-6.1185-10.1786" />
+                </svg>
               </div>
+
               <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold tracking-wider uppercase text-amber-300 font-sans leading-none">
+                  <span className="text-[11px] font-black tracking-wider uppercase text-stone-100 group-hover:text-white font-sans leading-none">
                     Working App
                   </span>
+                  <span className="text-[8px] font-mono font-bold px-1 py-0.2 rounded bg-[#3DDC84]/20 text-[#3DDC84] border border-[#3DDC84]/40 uppercase tracking-tight">
+                    APK
+                  </span>
                   <span className="flex h-1.5 w-1.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3DDC84] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#3DDC84]"></span>
                   </span>
                 </div>
-                <span className="text-[9px] font-mono text-stone-300 group-hover:text-amber-400 transition-colors mt-0.5 leading-none flex items-center gap-1">
+                <span className="text-[9px] font-mono text-stone-400 group-hover:text-[#3DDC84] transition-colors mt-0.5 leading-none flex items-center gap-1">
                   <span>click to download</span>
-                  <Download className="h-2.5 w-2.5 text-amber-400 animate-bounce shrink-0" />
+                  <Download className="h-2.5 w-2.5 text-[#3DDC84] animate-bounce shrink-0" />
                 </span>
               </div>
             </a>
