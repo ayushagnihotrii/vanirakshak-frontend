@@ -21,6 +21,7 @@ import {
 import ScrollyVideoCanvas from "./components/ScrollyVideoCanvas";
 import { ContainerScroll } from "./components/container-scroll-animation";
 import PipelineStages from "./components/PipelineStages";
+import ResearchStatusJudges from "./components/ResearchStatusJudges";
 import RotateOrientationOverlay from "./components/RotateOrientationOverlay";
 
 type RiskAction = "ALLOW" | "CHALLENGE" | "BLOCK";
@@ -358,7 +359,7 @@ export default function Home() {
           {/* Navigation Links from the Image */}
           <nav className="flex items-center gap-2 sm:gap-6 md:gap-11">
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-6 sm:gap-9 md:gap-11">
+            <div className="hidden md:flex items-center gap-4 sm:gap-6 md:gap-7">
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                 className="text-xs sm:text-[13px] font-semibold tracking-[0.16em] uppercase text-[#4A433B] hover:text-[#1E1A17] transition-colors cursor-pointer"
@@ -375,13 +376,17 @@ export default function Home() {
                 FEATURES
               </button>
 
+              {/* Highlighted Judges & Research Link */}
               <button
                 onClick={() => {
-                  document.getElementById("console-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                  document.getElementById("judges-status")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="text-xs sm:text-[13px] font-semibold tracking-[0.16em] uppercase text-[#4A433B] hover:text-[#1E1A17] transition-colors cursor-pointer"
+                className="relative text-xs sm:text-[12.5px] font-bold tracking-[0.14em] uppercase text-amber-900 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-600/40 px-3 py-1 rounded-full transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm group hover:scale-105"
+                title="View Preregistered Benchmarks & Scientific Rigor for Judges"
               >
-                OUR AI
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-[#3b2b1b] font-black group-hover:text-black">FOR JUDGES</span>
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-600/20 text-amber-900 font-mono font-bold">DOSSIER</span>
               </button>
 
               <button
@@ -390,7 +395,7 @@ export default function Home() {
                 }}
                 className="text-xs sm:text-[13px] font-semibold tracking-[0.16em] uppercase text-[#4A433B] hover:text-[#1E1A17] transition-colors cursor-pointer"
               >
-                IMPACT
+                LIVE CONSOLE
               </button>
             </div>
 
@@ -474,6 +479,9 @@ export default function Home() {
 
       {/* Dedicated 4-Stage Autonomous Defense Architecture Section */}
       <PipelineStages />
+
+      {/* Official Project Status & Scientific Rigor Dossier for Judges */}
+      <ResearchStatusJudges />
 
       {/* Real-time Security Console with Aceternity 3D Container Scroll Animation */}
       <div id="console-dashboard" className="relative z-10 scroll-mt-14 overflow-hidden">
